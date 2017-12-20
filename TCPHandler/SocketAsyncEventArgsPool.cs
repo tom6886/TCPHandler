@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace TCPHandler
 {
@@ -19,11 +20,6 @@ namespace TCPHandler
         internal ConcurrentDictionary<string, SocketAsyncEventArgsWithId> busypool;
 
         /// <summary>
-        /// 这是一个存放用户标识的数组，起一个辅助的功能
-        /// </summary>
-        private string[] keys;
-
-        /// <summary>
         /// 返回连接池中可用的连接数
         /// </summary>
         internal Int32 Count { get { return this.pool.Count; } }
@@ -31,18 +27,10 @@ namespace TCPHandler
         /// <summary>
         /// 返回在线用户的标识列表
         /// </summary>
-        internal string[] OnlineUID
-        {
-            get
-            {
-                busypool.Keys.CopyTo(keys, 0);
-                return keys;
-            }
-        }
+        internal string[] OnlineUID { get { return busypool.Keys.ToArray(); } }
 
         internal SocketAsyncEventArgsPool(Int32 capacity)
         {
-            keys = new string[capacity];
             Stack<SocketAsyncEventArgsWithId> _pool = new Stack<SocketAsyncEventArgsWithId>(capacity);
             this.pool = new ConcurrentStack<SocketAsyncEventArgsWithId>(_pool);
             Dictionary<string, SocketAsyncEventArgsWithId> _busypool = new Dictionary<string, SocketAsyncEventArgsWithId>(capacity);
@@ -56,10 +44,11 @@ namespace TCPHandler
         /// <returns></returns>
         internal SocketAsyncEventArgsWithId Pop(string uid)
         {
-            if (uid == string.Empty || uid == "")
+            if (string.IsNullOrEmpty(uid))
                 return null;
 
-            this.pool.TryPop(out SocketAsyncEventArgsWithId si);
+            SocketAsyncEventArgsWithId si;
+            this.pool.TryPop(out si);
             si.UID = uid;
             si.State = true;    //mark the state of pool is not the initial step
             busypool.TryAdd(uid, si);
@@ -74,6 +63,7 @@ namespace TCPHandler
         {
             if (item == null)
                 throw new ArgumentNullException("SocketAsyncEventArgsWithId对象为空");
+
             if (item.State == true)
             {
                 if (busypool.Keys.Count != 0)
@@ -86,6 +76,7 @@ namespace TCPHandler
                 else
                     throw new ArgumentException("忙碌队列为空");
             }
+
             item.UID = "-1";
             item.State = false;
             this.pool.Push(item);

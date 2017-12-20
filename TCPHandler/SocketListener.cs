@@ -193,7 +193,7 @@ namespace TCPHandler
             this.listenSocket.Listen(100);
             this.StartAccept(null);
             //开始监听已连接用户的发送数据
-            StartListenThread?.Invoke();
+            //StartListenThread?.Invoke();
             serverstate = ServerState.Running;
             mutex.WaitOne();
         }
@@ -282,17 +282,17 @@ namespace TCPHandler
 
         private void ProcessReceive(SocketAsyncEventArgs e)
         {
-            if (GetPackageLength == null)
-                throw new ArgumentException("The function GetPackageLength can not be null!");
-
-            if (e.LastOperation != SocketAsyncOperation.Receive)
-                return;
-
             if (!(e.BytesTransferred > 0 && e.SocketError == SocketError.Success))
             {
                 CloseClientSocket(((MySocketAsyncEventArgs)e).UID);
                 return;
             }
+
+            if (GetPackageLength == null)
+                throw new ArgumentException("The function GetPackageLength can not be null!");
+
+            if (e.LastOperation != SocketAsyncOperation.Receive)
+                return;
 
             AsyncUserToken token = (AsyncUserToken)e.UserToken;
             byte[] data = new byte[e.BytesTransferred];
