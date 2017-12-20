@@ -56,7 +56,7 @@ namespace TCPHandler
         /// <summary>
         /// 回调方法实例
         /// </summary>
-        private GetIDByEndPointFun GetIDByEndPoint;
+        public event GetIDByEndPointFun GetIDByEndPoint;
         /// <summary>
         /// 接收到信息时的事件委托
         /// </summary>
