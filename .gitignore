@@ -2,3 +2,5 @@
 TCPHandler/bin
 TCPHandler/obj
 TCPHandler/TCPHandler.csproj.user
+TCPHandler/nuget.exe
+TCPHandler/XTCPHandler.1.0.0.nupkg
