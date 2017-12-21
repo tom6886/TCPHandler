@@ -61,24 +61,16 @@ namespace TCPHandler
         /// 接收到信息时的事件委托
         /// </summary>
         /// <param name="info"></param>
-        public delegate void ReceiveMsgHandler(string uid, byte[] info);
+        public delegate void ReceiveMsgHandler(AsyncUserToken token, byte[] info);
         /// <summary>
         /// 接收到信息时的事件
         /// </summary>
         public event ReceiveMsgHandler OnMsgReceived;
         /// <summary>
-        /// 开始监听数据的委托
-        /// </summary>
-        public delegate void StartListenHandler();
-        /// <summary>
-        /// 开始监听数据的事件
-        /// </summary>
-        public event StartListenHandler StartListenThread;
-        /// <summary>
         /// 发送信息完成后的委托
         /// </summary>
         /// <param name="successorfalse"></param>
-        public delegate void SendCompletedHandler(string uid, SocketError error);
+        public delegate void SendCompletedHandler(AsyncUserToken token, SocketError error);
         /// <summary>
         /// 发送信息完成后的事件
         /// </summary>
@@ -103,6 +95,16 @@ namespace TCPHandler
         /// 获取处理后的发送信息的事件
         /// </summary>
         public event GetSendMessageHandler GetSendMessage;
+        /// <summary>
+        /// 客户端连接数量变化的委托
+        /// </summary>
+        /// <param name="number"></param>
+        /// <param name="token"></param>
+        public delegate void ClientNumberChangeHandler(int number, AsyncUserToken token);
+        /// <summary>
+        /// 客户端连接数量变化的事件
+        /// </summary>
+        public event ClientNumberChangeHandler OnClientNumberChange;
         #endregion
 
         #region 属性
@@ -174,26 +176,21 @@ namespace TCPHandler
         /// <summary>
         /// 启动服务器
         /// </summary>
-        /// <param name="data">端口号</param>
-        public void Start(Object data)
+        /// <param name="endPoint"></param>
+        public void Start(IPEndPoint endPoint)
         {
-            Int32 port = (Int32)data;
-            IPAddress[] addresslist = Dns.GetHostEntry(Environment.MachineName).AddressList;
-            IPEndPoint localEndPoint = new IPEndPoint(addresslist[addresslist.Length - 1], port);
-            this.listenSocket = new Socket(localEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            if (localEndPoint.AddressFamily == AddressFamily.InterNetworkV6)
+            this.listenSocket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            if (endPoint.AddressFamily == AddressFamily.InterNetworkV6)
             {
                 this.listenSocket.SetSocketOption(SocketOptionLevel.IPv6, (SocketOptionName)27, false);
-                this.listenSocket.Bind(new IPEndPoint(IPAddress.IPv6Any, localEndPoint.Port));
+                this.listenSocket.Bind(new IPEndPoint(IPAddress.IPv6Any, endPoint.Port));
             }
             else
             {
-                this.listenSocket.Bind(localEndPoint);
+                this.listenSocket.Bind(endPoint);
             }
             this.listenSocket.Listen(100);
             this.StartAccept(null);
-            //开始监听已连接用户的发送数据
-            //StartListenThread?.Invoke();
             serverstate = ServerState.Running;
             mutex.WaitOne();
         }
@@ -206,6 +203,7 @@ namespace TCPHandler
             if (listenSocket != null)
                 listenSocket.Close();
             listenSocket = null;
+            OnClientNumberChange?.Invoke(-readWritePool.busypool.Count, null);
             Dispose();
             mutex.ReleaseMutex();
             serverstate = ServerState.Stoped;
@@ -246,8 +244,6 @@ namespace TCPHandler
                 throw new ArgumentException("The function GetIDByEndPoint can not be null!");
             if (e.LastOperation != SocketAsyncOperation.Accept)    //检查上一次操作是否是Accept，不是就返回
                 return;
-            if (e.BytesTransferred <= 0)    //检查发送的长度是否大于0,不是就返回
-                return;
 
             string UID = GetIDByEndPoint(e.AcceptSocket.RemoteEndPoint as IPEndPoint);   //根据IP获取用户的UID
 
@@ -262,14 +258,20 @@ namespace TCPHandler
             {
                 Socket = e.AcceptSocket,
                 ConnectTime = DateTime.Now,
-                Remote = e.AcceptSocket.RemoteEndPoint,
-                IPAddress = ((IPEndPoint)(e.AcceptSocket.RemoteEndPoint)).Address
+                Remote = e.AcceptSocket.RemoteEndPoint as IPEndPoint
             };
 
             readEventArgsWithId.ReceiveSAEA.UserToken = userToken;
             readEventArgsWithId.SendSAEA.UserToken = userToken;
 
+            //激活接收
+            if (!e.AcceptSocket.ReceiveAsync(readEventArgsWithId.ReceiveSAEA))
+            {
+                ProcessReceive(readEventArgsWithId.ReceiveSAEA);
+            }
+
             Interlocked.Increment(ref this.numConnections);
+            OnClientNumberChange?.Invoke(1, userToken);
             this.StartAccept(e);
         }
         #endregion
@@ -324,7 +326,7 @@ namespace TCPHandler
                     token.Buffer.RemoveRange(0, packageLen + headLen);
                 }
 
-                OnMsgReceived?.Invoke(((MySocketAsyncEventArgs)e).UID, rev);
+                OnMsgReceived?.Invoke(token, rev);
 
             } while (token.Buffer.Count > headLen);
 
@@ -347,9 +349,11 @@ namespace TCPHandler
             if (e.LastOperation != SocketAsyncOperation.Send)
                 return;
 
+            AsyncUserToken token = (AsyncUserToken)e.UserToken;
+
             if (e.BytesTransferred > 0)
             {
-                OnSended(((MySocketAsyncEventArgs)e).UID, e.SocketError);
+                OnSended(token, e.SocketError);
             }
             else
             {
@@ -372,13 +376,15 @@ namespace TCPHandler
 
             SocketAsyncEventArgsWithId socketWithId = readWritePool.FindByUID(uid);
 
-            if (socketWithId == null) { OnSended(uid, SocketError.NotSocket); return; }
+            if (socketWithId == null) { OnSended(null, SocketError.NotSocket); return; }
 
             MySocketAsyncEventArgs e = socketWithId.SendSAEA;
 
+            AsyncUserToken token = (AsyncUserToken)e.UserToken;
+
             if (e.SocketError != SocketError.Success)
             {
-                OnSended(uid, e.SocketError);
+                OnSended(token, e.SocketError);
                 this.CloseClientSocket(e.UID);
                 return;
             }
@@ -390,8 +396,6 @@ namespace TCPHandler
                 byte[] sendbuffer = GetSendMessage(msg);
 
                 e.SetBuffer(sendbuffer, 0, sendbuffer.Length);
-
-                AsyncUserToken token = (AsyncUserToken)e.UserToken;
 
                 if (!token.Socket.SendAsync(e))
                 {
@@ -409,7 +413,7 @@ namespace TCPHandler
                 }
                 else
                 {
-                    OnSended(uid, SocketError.SocketError);
+                    OnSended(token, SocketError.SocketError);
                 }
             }
         }
@@ -423,10 +427,11 @@ namespace TCPHandler
             SocketAsyncEventArgsWithId saeaw = readWritePool.FindByUID(uid);
             if (saeaw == null)
                 return;
-            Socket s = saeaw.ReceiveSAEA.UserToken as Socket;
+
+            AsyncUserToken token = saeaw.ReceiveSAEA.UserToken as AsyncUserToken;
             try
             {
-                s.Shutdown(SocketShutdown.Both);
+                token.Socket.Shutdown(SocketShutdown.Both);
             }
             catch (Exception)
             {
@@ -434,6 +439,7 @@ namespace TCPHandler
             }
             this.semaphoreAcceptedClients.Release();
             Interlocked.Decrement(ref this.numConnections);
+            OnClientNumberChange?.Invoke(-1, token);
             this.readWritePool.Push(saeaw);
         }
         #endregion

@@ -1,3 +1,4 @@
 .vs
 TCPHandler/bin
 TCPHandler/obj
+TCPHandler/TCPHandler.csproj.user

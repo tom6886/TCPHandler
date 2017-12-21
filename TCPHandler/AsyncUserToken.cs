@@ -8,14 +8,9 @@ namespace TCPHandler
     public class AsyncUserToken
     {
         /// <summary>  
-        /// 客户端IP地址  
-        /// </summary>  
-        public IPAddress IPAddress { get; set; }
-
-        /// <summary>  
         /// 远程地址  
         /// </summary>  
-        public EndPoint Remote { get; set; }
+        public IPEndPoint Remote { get; set; }
 
         /// <summary>  
         /// 通信SOKET  
