@@ -7,6 +7,11 @@ namespace TCPHandler
 {
     public class AsyncUserToken
     {
+        /// <summary>
+        /// 用户标识
+        /// </summary>
+        public string UID { get; set; }
+
         /// <summary>  
         /// 远程地址  
         /// </summary>  

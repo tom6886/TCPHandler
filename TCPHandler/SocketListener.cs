@@ -256,6 +256,7 @@ namespace TCPHandler
 
             AsyncUserToken userToken = new AsyncUserToken
             {
+                UID = UID,
                 Socket = e.AcceptSocket,
                 ConnectTime = DateTime.Now,
                 Remote = e.AcceptSocket.RemoteEndPoint as IPEndPoint

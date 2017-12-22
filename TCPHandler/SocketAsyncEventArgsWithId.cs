@@ -19,7 +19,8 @@ namespace TCPHandler
         }
 
         /// <summary>
-        /// 用户标识，跟MySocketAsyncEventArgs的UID是一样的，在对SocketAsycnEventArgsWithId的UID属性赋值的时候也对MySocketAsyncEventArgs的UID属性赋值
+        /// 用户标识，跟MySocketAsyncEventArgs的UID是一样的，
+        /// 在对SocketAsycnEventArgsWithId的UID属性赋值的时候也对MySocketAsyncEventArgs的UID属性赋值
         /// </summary>
         internal string UID
         {
