@@ -272,12 +272,21 @@ namespace TCPHandler
         /// <param name="msg">消息体</param>
         public void Send(string msg)
         {
+            byte[] sendbuffer = GetSendMessage(msg);
+
+            Send(sendbuffer);
+        }
+
+        /// <summary>
+        /// 发送信息
+        /// </summary>
+        /// <param name="sendbuffer">消息体</param>
+        public void Send(byte[] sendbuffer)
+        {
             if (!Connected) { throw new SocketException((Int32)SocketError.NotConnected); }
 
             if (GetSendMessage == null)
                 throw new ArgumentException("The function GetSendMessage can not be null!");
-
-            byte[] sendbuffer = GetSendMessage(msg);
 
             if (sendbuffer.Length == 0)
                 return;

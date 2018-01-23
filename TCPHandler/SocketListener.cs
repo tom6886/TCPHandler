@@ -375,6 +375,24 @@ namespace TCPHandler
             if (string.IsNullOrEmpty(uid) || string.IsNullOrEmpty(msg))
                 return;
 
+            byte[] sendbuffer = GetSendMessage(msg);
+
+            Send(uid, sendbuffer);
+        }
+
+        /// <summary>
+        /// 发送信息
+        /// </summary>
+        /// <param name="uid">要发送的用户的uid</param>
+        /// <param name="msg">消息体</param>
+        public void Send(string uid, byte[] sendbuffer)
+        {
+            if (GetSendMessage == null)
+                throw new ArgumentException("The function GetSendMessage can not be null!");
+
+            if (string.IsNullOrEmpty(uid) || sendbuffer.Length == 0)
+                return;
+
             SocketAsyncEventArgsWithId socketWithId = readWritePool.FindByUID(uid);
 
             if (socketWithId == null) { OnSended(null, SocketError.NotSocket); return; }
@@ -394,8 +412,6 @@ namespace TCPHandler
 
             try
             {
-                byte[] sendbuffer = GetSendMessage(msg);
-
                 e.SetBuffer(sendbuffer, 0, sendbuffer.Length);
 
                 if (!token.Socket.SendAsync(e))
@@ -410,7 +426,7 @@ namespace TCPHandler
                     i++;
                     //如果发送出现异常就延迟0.01秒再发
                     Thread.Sleep(10);
-                    Send(uid, msg);
+                    Send(uid, sendbuffer);
                 }
                 else
                 {
