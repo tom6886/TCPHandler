@@ -203,7 +203,7 @@ namespace TCPHandler
             if (listenSocket != null)
                 listenSocket.Close();
             listenSocket = null;
-            OnClientNumberChange?.Invoke(-readWritePool.busypool.Count, null);
+            //OnClientNumberChange?.Invoke(-readWritePool.busypool.Count, null);
             Dispose();
             mutex.ReleaseMutex();
             serverstate = ServerState.Stoped;
