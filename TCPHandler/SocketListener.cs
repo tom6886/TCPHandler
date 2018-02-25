@@ -387,9 +387,6 @@ namespace TCPHandler
         /// <param name="msg">消息体</param>
         public void Send(string uid, byte[] sendbuffer)
         {
-            if (GetSendMessage == null)
-                throw new ArgumentException("The function GetSendMessage can not be null!");
-
             if (string.IsNullOrEmpty(uid) || sendbuffer.Length == 0)
                 return;
 
