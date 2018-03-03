@@ -434,7 +434,7 @@ namespace TCPHandler
         #endregion
 
         #region 关闭连接
-        private void CloseClientSocket(string uid)
+        public void CloseClientSocket(string uid)
         {
             if (string.IsNullOrEmpty(uid))
                 return;
