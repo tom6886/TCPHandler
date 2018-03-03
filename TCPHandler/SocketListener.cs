@@ -438,19 +438,14 @@ namespace TCPHandler
         {
             if (string.IsNullOrEmpty(uid))
                 return;
+
             SocketAsyncEventArgsWithId saeaw = readWritePool.FindByUID(uid);
             if (saeaw == null)
                 return;
 
             AsyncUserToken token = saeaw.ReceiveSAEA.UserToken as AsyncUserToken;
-            try
-            {
-                token.Socket.Shutdown(SocketShutdown.Both);
-            }
-            catch (Exception)
-            {
-                //客户端已经关闭
-            }
+            token.Socket.Shutdown(SocketShutdown.Both);
+
             this.semaphoreAcceptedClients.Release();
             Interlocked.Decrement(ref this.numConnections);
             OnClientNumberChange?.Invoke(-1, token);
