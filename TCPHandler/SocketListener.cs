@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -136,6 +137,14 @@ namespace TCPHandler
         {
             get { return readWritePool.OnlineUID; }
         }
+
+        /// <summary>
+        /// 获取当前在线用户的UserToken
+        /// </summary>
+        public List<AsyncUserTokenInfo> OnlineUserToken
+        {
+            get { return readWritePool.OnlineUserToken; }
+        }
         #endregion
 
         #region 初始化和启动
@@ -259,6 +268,7 @@ namespace TCPHandler
                 UID = UID,
                 Socket = e.AcceptSocket,
                 ConnectTime = DateTime.Now,
+                FreshTime = DateTime.Now,
                 Remote = e.AcceptSocket.RemoteEndPoint as IPEndPoint
             };
 
@@ -298,6 +308,7 @@ namespace TCPHandler
                 return;
 
             AsyncUserToken token = (AsyncUserToken)e.UserToken;
+            token.FreshTime = DateTime.Now;
             byte[] data = new byte[e.BytesTransferred];
             Array.Copy(e.Buffer, e.Offset, data, 0, e.BytesTransferred);
             lock (token.Buffer)
@@ -397,6 +408,7 @@ namespace TCPHandler
             MySocketAsyncEventArgs e = socketWithId.SendSAEA;
 
             AsyncUserToken token = (AsyncUserToken)e.UserToken;
+            token.FreshTime = DateTime.Now;
 
             if (e.SocketError != SocketError.Success)
             {

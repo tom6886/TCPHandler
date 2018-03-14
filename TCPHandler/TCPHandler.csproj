@@ -41,6 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AsyncUserToken.cs" />
+    <Compile Include="AsyncUserTokenInfo.cs" />
     <Compile Include="BufferManager.cs" />
     <Compile Include="MySocketAsyncEventArgs.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

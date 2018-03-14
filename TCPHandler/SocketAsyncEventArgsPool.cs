@@ -29,6 +29,19 @@ namespace TCPHandler
         /// </summary>
         internal string[] OnlineUID { get { return busypool.Keys.ToArray(); } }
 
+        /// <summary>
+        /// 返回在线用户的Token列表
+        /// </summary>
+        internal List<AsyncUserTokenInfo> OnlineUserToken
+        {
+            get
+            {
+                return busypool.Values.
+                    Select(q => q.ReceiveSAEA.UserToken as AsyncUserToken).
+                    Select(p => new AsyncUserTokenInfo() { UID = p.UID, Remote = p.Remote, ConnectTime = p.ConnectTime, FreshTime = p.FreshTime }).ToList();
+            }
+        }
+
         internal SocketAsyncEventArgsPool(Int32 capacity)
         {
             Stack<SocketAsyncEventArgsWithId> _pool = new Stack<SocketAsyncEventArgsWithId>(capacity);
