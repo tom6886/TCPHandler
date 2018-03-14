@@ -297,7 +297,7 @@ namespace TCPHandler
         {
             if (!(e.BytesTransferred > 0 && e.SocketError == SocketError.Success))
             {
-                CloseClientSocket(((MySocketAsyncEventArgs)e).UID);
+                //CloseClientSocket(((MySocketAsyncEventArgs)e).UID);
                 return;
             }
 
