@@ -297,7 +297,7 @@ namespace TCPHandler
         {
             if (!(e.BytesTransferred > 0 && e.SocketError == SocketError.Success))
             {
-                //CloseClientSocket(((MySocketAsyncEventArgs)e).UID);
+                CloseClientSocket(((MySocketAsyncEventArgs)e).UID);
                 return;
             }
 
@@ -455,13 +455,15 @@ namespace TCPHandler
             if (saeaw == null)
                 return;
 
+            //先将连接从活跃池中取出，再进行断开，因为断开会触发接收消息
+            this.readWritePool.Push(saeaw);
+
             AsyncUserToken token = saeaw.ReceiveSAEA.UserToken as AsyncUserToken;
             token.Socket.Shutdown(SocketShutdown.Both);
 
             this.semaphoreAcceptedClients.Release();
             Interlocked.Decrement(ref this.numConnections);
             OnClientNumberChange?.Invoke(-1, token);
-            this.readWritePool.Push(saeaw);
         }
         #endregion
 
